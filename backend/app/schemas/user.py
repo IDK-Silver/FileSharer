@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 
 # 從您的 models 檔案中匯入 UserRole
@@ -32,3 +32,6 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None # 允許更新密碼
     is_active: Optional[bool] = None
     role: Optional[UserRole] = None
+
+class UserUpdateUsername(BaseModel): # <--- 新增這個 Schema
+    username: str = Field(..., min_length=3, max_length=100) # 新的使用者名稱，加上驗證
