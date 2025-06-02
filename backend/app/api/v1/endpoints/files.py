@@ -9,7 +9,7 @@ from app.db.session import get_db
 from app.core.security import get_current_active_user
 from app.models.user import User
 from app.schemas.user import UserRole # Assuming UserRole is an Enum in your models
-from app.schemas.file import FileCreate, FileRead, PresignedUrlResponse
+from app.schemas.file import FileCreate, FileRead, PresignedUrlResponse, FileRename
 from app.crud import file as crud_file
 from app.services.storage_interface import StorageInterface
 from app.dependencies import get_storage_service # Import the dependency
@@ -138,7 +138,8 @@ async def generate_file_share_link(
     presigned_url = storage_service.generate_presigned_url(
         storage_path=file_meta.storage_path,
         expiration_seconds=expiration,
-        http_method="GET" # For downloading/viewing
+        http_method="GET",
+        download_filename=file_meta.filename # Optional: Specify the filename for download
     )
 
     if not presigned_url:
@@ -177,3 +178,46 @@ async def delete_user_file(
     except Exception as e:
         logger.error(f"Unexpected error during file deletion for file_id {file_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred during file deletion.")
+    
+@router.patch("/{file_id}/rename", response_model=FileRead)
+async def rename_file_endpoint(
+    file_id: int,
+    file_rename_data: FileRename, # 接收包含 new_filename 的請求主體
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    重新命名檔案 (僅修改資料庫中的 filename 元數據)。
+    檔案擁有者或 ADMIN/MANAGER 角色的使用者可以執行此操作。
+    """
+    logger.info(f"User {current_user.username} (ID: {current_user.id}, Role: {current_user.role}) attempting to rename file ID: {file_id} to '{file_rename_data.new_filename}'")
+
+    # 檢查檔案是否存在
+    file_to_rename = crud_file.get_file_metadata_by_id(db, file_id=file_id)
+    if not file_to_rename:
+        logger.warning(f"File ID {file_id} not found for renaming by user {current_user.username}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
+    # 權限檢查：檔案擁有者 或 ADMIN/MANAGER
+    owner_id_for_crud = None # 預設情況下，ADMIN/MANAGER 可以修改任何檔案
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        if file_to_rename.owner_id != current_user.id:
+            logger.warning(f"User {current_user.username} (Role: {current_user.role}) not authorized to rename file ID: {file_id} owned by {file_to_rename.owner_id}")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to rename this file")
+        owner_id_for_crud = current_user.id # 普通使用者，傳遞 owner_id 以確保只修改自己的
+
+    updated_file = crud_file.update_file_filename(
+        db=db,
+        file_id=file_id,
+        new_filename=file_rename_data.new_filename,
+        owner_id=owner_id_for_crud # 如果是 ADMIN/MANAGER，owner_id_for_crud 會是 None
+    )
+
+    if not updated_file:
+        # 這種情況理論上不應該發生，因為上面已經檢查過檔案存在且權限符合
+        # 但如果 update_file_filename 內部因為某些原因 (例如 owner_id 不匹配且不是 ADMIN) 返回 None
+        logger.error(f"Failed to update filename for file ID: {file_id} by user {current_user.username}, possibly due to ownership mismatch in CRUD despite role.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not rename file, unexpected issue.") # 或者更具體的錯誤
+
+    logger.info(f"File ID: {file_id} successfully renamed to '{updated_file.filename}' by user {current_user.username}")
+    return updated_file

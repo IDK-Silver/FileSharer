@@ -1,5 +1,5 @@
 # backend/app/schemas/file.py
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
@@ -27,6 +27,10 @@ class FileRead(FileBase):
 
     class Config:
         from_attributes = True
+
+
+class FileRename(BaseModel):
+    new_filename: str = Field(..., min_length=1, max_length=255) # 新的檔案名稱，並加上基本驗證
 
 class PresignedUrlResponse(BaseModel):
     url: str

@@ -15,7 +15,11 @@ class StorageInterface(ABC):
 
     @abstractmethod
     def generate_presigned_url(
-        self, storage_path: str, expiration_seconds: int, http_method: str = "GET"
+        self,
+        storage_path: str,
+        expiration_seconds: int,
+        http_method: str = "GET",
+        download_filename: Optional[str] = None
     ) -> Optional[str]:
         pass
 

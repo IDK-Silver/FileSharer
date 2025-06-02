@@ -37,3 +37,23 @@ def delete_file_metadata(db: Session, file_id: int) -> Optional[FileMetadata]:
         db.delete(db_file)
         db.commit()
     return db_file # Returns the deleted object or None if not found
+
+def update_file_filename(
+    db: Session, file_id: int, new_filename: str, owner_id: Optional[int] = None
+) -> Optional[FileMetadata]:
+    """
+    更新指定檔案的檔案名稱。
+    如果提供了 owner_id，則僅當檔案屬於該擁有者時才更新。
+    """
+    query = db.query(FileMetadata).filter(FileMetadata.id == file_id)
+    if owner_id is not None: # 如果是普通使用者操作，則需要驗證擁有權
+        query = query.filter(FileMetadata.owner_id == owner_id)
+    
+    db_file = query.first()
+    
+    if db_file:
+        db_file.filename = new_filename
+        db.add(db_file) # 或者 db.merge(db_file)
+        db.commit()
+        db.refresh(db_file)
+    return db_file

@@ -72,7 +72,11 @@ class S3Service(StorageInterface):
             raise IOError(f"S3 delete failed: {e}")
 
     def generate_presigned_url(
-        self, storage_path: str, expiration_seconds: int, http_method: str = "GET"
+        self, storage_path: str,
+        expiration_seconds: int,
+        http_method: str = "GET",
+        download_filename: Optional[str] = None # 新增參數，用於指定下載時的檔名
+
     ) -> Optional[str]:
         if not self.s3_client or not self.bucket_name:
             logger.error("S3 client or bucket name not initialized properly.")
@@ -93,10 +97,22 @@ class S3Service(StorageInterface):
             logger.error(f"Unsupported http_method '{http_method}' for S3 presigned URL generation.")
             return None
 
+
+        params = {"Bucket": self.bucket_name, "Key": storage_path}
+        
+        if http_method.upper() == "GET" and download_filename:
+            # 為了確保檔名在 HTTP 標頭中正確編碼，特別是包含非 ASCII 字元時
+            # RFC 6266 建議使用 filename*=UTF-8''<urlencoded_filename> 格式
+            # 但簡單的 attachment; filename="<filename>" 對很多現代瀏覽器也有效
+            # Boto3/S3 通常能處理好檔名的編碼，我們只需提供原始檔名
+            params["ResponseContentDisposition"] = f'attachment; filename="{download_filename}"'
+            # 如果希望瀏覽器嘗試直接顯示而不是下載 (例如圖片、PDF)，可以使用 'inline'
+            # params["ResponseContentDisposition"] = f'inline; filename="{download_filename}"'
+        
         try:
             url = self.s3_client.generate_presigned_url(
                 ClientMethod=s3_client_method,
-                Params={"Bucket": self.bucket_name, "Key": storage_path},
+                Params=params,
                 ExpiresIn=expiration_seconds,
                 HttpMethod=http_method.upper() # Explicitly pass HttpMethod for clarity and correctness
             )
