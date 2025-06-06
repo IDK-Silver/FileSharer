@@ -74,3 +74,23 @@ export async function deleteFile(fileId: number): Promise<void> {
     method: 'DELETE',
   });
 }
+
+// 假設的 PresignedUrlResponse 類型 (應與後端 schemas/file.py 中的 PresignedUrlResponse 一致)
+export interface PresignedUrlResponse {
+  url: string;
+  filename: string;
+}
+
+// 獲取檔案的分享/下載連結
+export async function getFileShareLink(fileId: number, expire_seconds?: number): Promise<PresignedUrlResponse> {
+  // 如果有過期時間參數，加到查詢字符串中
+  let url = `${API_BASE_URL}/files/${fileId}/generate-share-link`;
+  if (expire_seconds) {
+    url += `?expire_seconds=${expire_seconds}`;
+  }
+  
+  // 注意：雖然端點是 generate-share-link，但它實際上是產生一個預簽章 URL，可用於下載
+  return request<PresignedUrlResponse>(url, {
+    method: 'POST',
+  });
+}

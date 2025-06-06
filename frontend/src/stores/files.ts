@@ -2,12 +2,13 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import * as fileService from '@/services/fileService';
-import type { FileMetadata } from '@/services/fileService'; // 從 service 匯入類型
+import type { FileMetadata, PresignedUrlResponse } from '@/services/fileService'; // 從 service 匯入類型
 
 export const useFilesStore = defineStore('files', () => {
   // State
   const files = ref<FileMetadata[]>([]);
   const isLoading = ref(false);
+  const shareLoading = ref(false); // 為分享操作增加獨立的 loading 狀態
   const error = ref<string | null>(null);
 
   // Actions
@@ -53,12 +54,28 @@ export const useFilesStore = defineStore('files', () => {
     }
   }
 
+  async function generateShareLink(fileId: number, expireSeconds?: number): Promise<PresignedUrlResponse | null> {
+    shareLoading.value = true;
+    error.value = null;
+    try {
+      const response = await fileService.getFileShareLink(fileId, expireSeconds);
+      return response;
+    } catch (e: any) {
+      error.value = e.message || '無法產生分享連結';
+      return null;
+    } finally {
+      shareLoading.value = false;
+    }
+  }
+
   return {
     files,
     isLoading,
+    shareLoading,
     error,
     fetchFiles,
     uploadFile,
     deleteFile,
+    generateShareLink,
   };
 });
