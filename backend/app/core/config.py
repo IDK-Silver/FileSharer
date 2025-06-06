@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
 
+    MINIO_ENDPOINT_URL: Optional[str] = None
+    MINIO_ROOT_USER: Optional[str] = None      # <--- 新增
+    MINIO_ROOT_PASSWORD: Optional[str] = None  # <--- 新增
+    MINIO_SERVER_URL: Optional[str] = None
+
+    
     # --- AWS S3 Settings ---
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None

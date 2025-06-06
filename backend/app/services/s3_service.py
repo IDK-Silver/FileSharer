@@ -12,18 +12,36 @@ logger = logging.getLogger(__name__)
 class S3Service(StorageInterface):
     def __init__(self):
         try:
-            self.s3_client = boto3.client(
-                "s3",
-                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                aws_session_token=settings.AWS_SESSION_TOKEN,
-                region_name=settings.AWS_REGION
-            )
+            # 建立一個字典來動態組織要傳給 boto3 client 的參數
+            client_kwargs = {
+                "aws_access_key_id": settings.AWS_ACCESS_KEY_ID,
+                "aws_secret_access_key": settings.AWS_SECRET_ACCESS_KEY,
+                "region_name": settings.AWS_REGION,
+            }
+
+            # 1. 檢查是否設定了 MinIO 的 endpoint_url
+            #    如果有的話，就把它加入到參數字典中，boto3 就會連到 MinIO
+            if settings.MINIO_ENDPOINT_URL:
+                logger.info(f"Connecting to MinIO at {settings.MINIO_ENDPOINT_URL}")
+                client_kwargs["endpoint_url"] = settings.MINIO_ENDPOINT_URL
+            
+            # 2. 檢查是否有 AWS 臨時 session token (通常用於 AWS Academy)
+            #    MinIO 不需要這個，所以只有在連接 AWS 且有提供時才加入
+            if not settings.MINIO_ENDPOINT_URL and settings.AWS_SESSION_TOKEN:
+                logger.info("Using AWS Session Token.")
+                client_kwargs["aws_session_token"] = settings.AWS_SESSION_TOKEN
+
+
+
+            # 3. 使用星號 (**) 語法將整個字典作為參數傳入
+            self.s3_client = boto3.client("s3", **client_kwargs)
+            
             self.bucket_name = settings.S3_BUCKET_NAME
             if not self.bucket_name:
                 raise ValueError("S3_BUCKET_NAME is not configured.")
+       
         except NoCredentialsError:
-            logger.error("AWS credentials not found. Ensure they are configured.")
+            logger.error("AWS/MinIO credentials not found. Ensure they are configured in your .env file.")
             raise
         except Exception as e:
             logger.error(f"Error initializing S3Service: {e}")
@@ -32,7 +50,10 @@ class S3Service(StorageInterface):
     def upload_file(
         self, file_content: IO[Any], destination_path: str, content_type: Optional[str] = None
     ) -> str:
-        extra_args = {"ServerSideEncryption": "AES256"}
+        if settings.MINIO_ENDPOINT_URL:
+            extra_args = {}
+        else:
+            extra_args = {"ServerSideEncryption": "AES256"}
         if content_type:
             extra_args["ContentType"] = content_type
         
@@ -109,6 +130,11 @@ class S3Service(StorageInterface):
                 ExpiresIn=expiration_seconds,
                 HttpMethod=http_method.upper()
             )
+            
+            if settings.MINIO_ENDPOINT_URL and settings.MINIO_SERVER_URL:
+                # 如果是 MinIO，則需要將 URL 的域名部分替換為 MinIO 的服務器 URL
+                url = url.replace(settings.MINIO_ENDPOINT_URL, settings.MINIO_SERVER_URL)
+            
             return url
         except ClientError as e:
             logger.error(f"Failed to generate S3 presigned URL for {storage_path}: {e}")

@@ -17,6 +17,55 @@ services:
     networks:
       - filesharer-network
 
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000" # API port
+      - "9001:9001" # Console port
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin} # 使用 .env 檔案中的變數，或使用預設值
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - filesharer-network
+
+  create-minio-bucket:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+    entrypoint: /bin/sh -c "
+      set -e;
+      echo 'Waiting for MinIO...';
+      until /usr/bin/mc alias set myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do
+        echo '... MinIO is not ready yet, retrying in 5 seconds';
+        sleep 5;
+      done;
+      echo 'MinIO is ready.';
+
+      if /usr/bin/mc ls myminio/$$S3_BUCKET_NAME > /dev/null 2>&1; then
+        echo 'Bucket \"$$S3_BUCKET_NAME\" already exists.';
+      else
+        echo 'Creating bucket \"$$S3_BUCKET_NAME\"...';
+        /usr/bin/mc mb myminio/$$S3_BUCKET_NAME;
+        echo 'Bucket \"$$S3_BUCKET_NAME\" created.';
+      fi;
+      exit 0;
+      "
+    networks:
+      - filesharer-network
+
   backend:
     build:
       context: ./backend
@@ -28,16 +77,22 @@ services:
     env_file:
       - ./backend/.env
     depends_on:
+      create-minio-bucket:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
-    volumes:
-      - ./backend/uploads:/app/uploads
+      minio:
+        condition: service_healthy
+    # volumes:
+    #   - ./backend:/app
     networks:
       - filesharer-network
     restart: unless-stopped
 
 volumes:
   mysql_data:
+    driver: local
+  minio_data:
     driver: local
 
 networks:
