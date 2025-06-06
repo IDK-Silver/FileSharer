@@ -1,7 +1,8 @@
 // frontend/src/services/authService.ts
 // import type { UserCredentials, UserRegistrationInfo, User, TokenResponse } from '@/schemas';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers || {});
@@ -10,16 +11,16 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   // 只有在沒有預設 Content-Type，且 body 不是 FormData 或 URLSearchParams 時，
   // 才將 Content-Type 設為 application/json
   if (
-    !headers.has('Content-Type') &&
+    !headers.has("Content-Type") &&
     !(options.body instanceof FormData) &&
     !(options.body instanceof URLSearchParams)
   ) {
-    headers.set('Content-Type', 'application/json');
+    headers.set("Content-Type", "application/json");
   }
 
-  const token = localStorage.getItem('accessToken');
+  const token = localStorage.getItem("accessToken");
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(url, { ...options, headers });
@@ -29,9 +30,13 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
     try {
       errorData = await response.json();
     } catch (e) {
-      throw new Error(response.statusText || `請求失敗，狀態碼: ${response.status}`);
+      throw new Error(
+        response.statusText || `請求失敗，狀態碼: ${response.status}`
+      );
     }
-    throw new Error(errorData?.detail || `請求失敗，狀態碼: ${response.status}`);
+    throw new Error(
+      errorData?.detail || `請求失敗，狀態碼: ${response.status}`
+    );
   }
 
   if (response.status === 204) {
@@ -40,9 +45,11 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function loginUser(credentials: /* UserCredentials */ any): Promise</*TokenResponse*/ any> {
+export async function loginUser(
+  credentials: /* UserCredentials */ any
+): Promise</*TokenResponse*/ any> {
   return request<any>(`${API_BASE_URL}/auth/login/access-token`, {
-    method: 'POST',
+    method: "POST",
     body: new URLSearchParams(credentials as any),
     // 此處不需要明確設定 headers 中的 Content-Type，
     // 因為 new URLSearchParams(...) 配合 fetch API 時，
@@ -51,42 +58,69 @@ export async function loginUser(credentials: /* UserCredentials */ any): Promise
   });
 }
 
-export async function registerUser(userInfo: /* UserRegistrationInfo */ any): Promise</*User*/ any> {
+export async function registerUser(
+  userInfo: /* UserRegistrationInfo */ any
+): Promise</*User*/ any> {
   return request</*User*/ any>(`${API_BASE_URL}/auth/register`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(userInfo), // 註冊端點預期是 JSON
   });
 }
 
 export async function getCurrentUser(/* token: string */): Promise</*User*/ any> {
   return request</*User*/ any>(`${API_BASE_URL}/auth/users/me`, {
-    method: 'GET',
+    method: "GET",
   });
 }
 
 export async function logoutUser(): Promise<void> {
-  console.log('authService: 執行登出請求到後端');
-   try {
-        // 後端 /logout 端點預期是 POST，並且會從 cookie 讀取 refresh token
-        // 前端不需要傳遞 body 或特定的 token
-        await fetch(`${API_BASE_URL}/auth/logout`, {
-            method: 'POST',
-            headers: { // 確保 Authorization header (如果有的話) 被傳送
-                 ...(localStorage.getItem('accessToken') ? { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } : {})
-            }
-        });
-        console.log('authService: 後端登出請求已發送');
-    } catch (error) {
-        // 這裡的錯誤通常是網路錯誤，因為後端登出成功通常返回 200 OK (帶有清除 cookie 的 header) 或 204 No Content
-        // 即使這裡出錯，authStore 中的 finally 區塊仍會清除前端 token
-        console.error("登出請求到後端失敗:", error);
-        // 可以選擇是否向上拋出錯誤，但對於登出操作，即使後端呼叫失敗，前端清理通常也應繼續
-    }
+  console.log("authService: 執行登出請求到後端");
+  try {
+    // 後端 /logout 端點預期是 POST，並且會從 cookie 讀取 refresh token
+    // 前端不需要傳遞 body 或特定的 token
+    await fetch(`${API_BASE_URL}/auth/logout`, {
+      method: "POST",
+      headers: {
+        // 確保 Authorization header (如果有的話) 被傳送
+        ...(localStorage.getItem("accessToken")
+          ? { Authorization: `Bearer ${localStorage.getItem("accessToken")}` }
+          : {}),
+      },
+    });
+    console.log("authService: 後端登出請求已發送");
+  } catch (error) {
+    // 這裡的錯誤通常是網路錯誤，因為後端登出成功通常返回 200 OK (帶有清除 cookie 的 header) 或 204 No Content
+    // 即使這裡出錯，authStore 中的 finally 區塊仍會清除前端 token
+    console.error("登出請求到後端失敗:", error);
+    // 可以選擇是否向上拋出錯誤，但對於登出操作，即使後端呼叫失敗，前端清理通常也應繼續
+  }
 }
 
 export async function refreshToken(): Promise</* TokenResponse */ any> {
-  return request</* TokenResponse */ any>(`${API_BASE_URL}/auth/refresh-token`, {
-    method: 'POST',
-    // 不需要 body，因為 refresh token 在 cookie 中
+  return request</* TokenResponse */ any>(
+    `${API_BASE_URL}/auth/refresh-token`,
+    {
+      method: "POST",
+      // 不需要 body，因為 refresh token 在 cookie 中
+    }
+  );
+}
+
+// 更新目前使用者的使用者名稱
+export async function updateUsername(payload: {
+  username: string;
+}): Promise<any> {
+  return request<any>(`${API_BASE_URL}/users/me/username`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
 }
+
+// 更新目前使用者的密碼
+export async function updatePassword(payload: any): Promise<void> {
+  await request<void>(`${API_BASE_URL}/users/me/password`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+

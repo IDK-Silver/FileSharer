@@ -109,6 +109,32 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('accessToken');
   }
 
+  async function updateMyUsername(newUsername: string) {
+    // ... (省略 loading 和 error 處理)
+    try {
+      const updatedUser = await authService.updateUsername({
+        username: newUsername,
+      });
+      // 更新本地 store 中的使用者資訊
+      if (user.value) {
+        user.value.username = updatedUser.username;
+      }
+    } catch (e: any) {
+      console.error("更新使用者名稱失敗:", e);
+      throw e; // 向上拋出錯誤讓 UI 處理
+    }
+  }
+
+  async function updateMyPassword(passwordData: any) {
+    // ... (省略 loading 和 error 處理)
+    try {
+      await authService.updatePassword(passwordData);
+    } catch (e: any) {
+      console.error("更新密碼失敗:", e);
+      throw e;
+    }
+  }
+
   return {
     user,
     accessToken,
@@ -125,5 +151,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     fetchCurrentUser,
     handleAuthError,
+    updateMyPassword,
+    updateMyUsername,
   };
 });
