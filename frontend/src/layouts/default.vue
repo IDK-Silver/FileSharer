@@ -25,9 +25,9 @@
 
     <!-- 主要內容區域 -->
     <v-main>
-      <v-container fluid>
-        <slot />
-      </v-container>
+    <v-container fluid>
+        <router-view />
+    </v-container>
     </v-main>
 
     <!-- 底部頁尾 -->
