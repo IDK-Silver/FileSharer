@@ -18,7 +18,7 @@ from app.services.storage_interface import StorageInterface
 from app.dependencies import get_storage_service # Import the dependency
 from app.core.config import settings
 from app.api.v1.endpoints.users import require_manager_or_admin_role
-
+from app.crud import user as crud_user
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
@@ -231,12 +231,25 @@ async def rename_file_endpoint(
 @router.get("/all", response_model=List[FileRead], dependencies=[Depends(require_manager_or_admin_role)])
 async def list_all_files_for_admin(
     db: Session = Depends(get_db),
-    owner_id: Optional[int] = Query(None, description="Filter files by owner ID"),
+    username: Optional[str] = Query(None, description="Filter files by owner's username"),
+    email: Optional[str] = Query(None, description="Filter files by owner's email"),
     skip: int = 0,
     limit: int = 100
 ):
     """
-    (Admin/Manager Only) 獲取系統中的所有檔案，可選擇性地按擁有者 ID 過濾。
+    (Admin/Manager Only) 獲取系統中的所有檔案，可按使用者名稱或 email 過濾。
     """
+    owner_id: Optional[int] = None
+    if username:
+        user = crud_user.get_user_by_username(db, username=username)
+        if not user:
+            return [] # 如果找不到使用者，直接回傳空列表
+        owner_id = user.id
+    elif email:
+        user = crud_user.get_user_by_email(db, email=email)
+        if not user:
+            return []
+        owner_id = user.id
+        
     files = crud_file.get_all_files(db=db, owner_id=owner_id, skip=skip, limit=limit)
     return files

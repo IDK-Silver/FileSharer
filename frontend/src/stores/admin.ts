@@ -75,11 +75,13 @@ export const useAdminStore = defineStore("admin", () => {
   /**
    * 獲取所有檔案列表
    */
-  async function fetchAllFiles() {
+  async function fetchAllFiles(
+    filter: { username?: string; email?: string } = {}
+  ) {
     isLoadingFiles.value = true;
     error.value = null;
     try {
-      allFiles.value = await adminService.getAllFiles();
+      allFiles.value = await adminService.getAllFiles(filter);
     } catch (e: any) {
       error.value = e.message || "無法獲取所有檔案列表";
       allFiles.value = [];

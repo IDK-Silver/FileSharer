@@ -87,8 +87,12 @@ export async function deleteUserByAdmin(userId: number): Promise<User> {
 /**
  * (Admin/Manager) 獲取所有檔案列表
  */
-export async function getAllFiles(): Promise<FileMetadata[]> {
-  return request<FileMetadata[]>(`${API_BASE_URL}/files/all`);
+export async function getAllFiles(filter: {
+  username?: string;
+  email?: string;
+}): Promise<FileMetadata[]> {
+  const query = new URLSearchParams(filter as any).toString();
+  return request<FileMetadata[]>(`${API_BASE_URL}/files/all?${query}`);
 }
 
 export async function createUserByAdmin(userData: any): Promise<User> {
