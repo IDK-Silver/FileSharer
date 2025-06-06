@@ -68,8 +68,20 @@ export const useFilesStore = defineStore('files', () => {
     }
   }
 
+  async function renameFile(fileId: number, newFilename: string) {
+    try {
+      const updatedFile = await fileService.renameFile(fileId, newFilename);
+      const index = files.value.findIndex((f) => f.id === fileId);
+      if (index !== -1) {
+        files.value[index] = updatedFile;
+      }
+    } catch (e: any) {
+      // ... error 處理 ...
+      throw e;
+    }
+  }
 
-
+  
   return {
     files,
     isLoading,
@@ -79,5 +91,6 @@ export const useFilesStore = defineStore('files', () => {
     uploadFile,
     deleteFile,
     generateShareLink,
+    renameFile,
   };
 });

@@ -7,7 +7,7 @@ export interface User {
   email: string;
   username: string;
   is_active: boolean;
-  role: 'ADMIN' | 'MANAGER' | 'USER';
+  role: 'admin' | 'manager' | 'user';
 }
 
 export interface TokenResponse {
@@ -27,7 +27,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Getters
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value);
-  const isAdmin = computed(() => user.value?.role === 'ADMIN');
+  const isAdmin = computed(() => user.value?.role === 'admin');
   const userRole = computed(() => user.value?.role);
 
   // Actions

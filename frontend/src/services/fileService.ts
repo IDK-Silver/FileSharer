@@ -5,7 +5,14 @@
 // 在真實專案中，您可以將 request 函式抽到一個獨立的 api.ts 檔案中
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
-
+export interface FileMetadata {
+  id: number;
+  filename: string;
+  file_type: string | null;
+  size: number | null;
+  uploaded_at: string;
+  owner_id: number;
+}
 // --- 通用請求函式 (從 authService.ts 複製) ---
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers || {});
@@ -93,4 +100,18 @@ export async function getFileShareLink(fileId: number, expire_seconds?: number):
   return request<PresignedUrlResponse>(url, {
     method: 'POST',
   });
+}
+
+export async function renameFile(
+  fileId: number,
+  newFilename: string
+): Promise<FileMetadata> {
+  return request<FileMetadata>(`${API_BASE_URL}/files/${fileId}/rename`, {
+    method: "PATCH",
+    body: JSON.stringify({ new_filename: newFilename }),
+  });
+}
+
+export async function getAllFiles(): Promise<FileMetadata[]> {
+  return request<FileMetadata[]>(`${API_BASE_URL}/files/all`);
 }
