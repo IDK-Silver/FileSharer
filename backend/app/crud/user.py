@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.schemas.admin import AdminUserUpdate
 from app.models.user import User, UserRole # 假設 UserRole 在 models.user 中
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, AdminUserCreate
 from app.core.security import get_password_hash, verify_password
 
 def get_user_by_email(db: Session, email: str) -> User | None:
@@ -127,3 +127,18 @@ def update_user_password(db: Session, *, user: User, new_password: str) -> None:
     user.hashed_password = hashed_password
     db.add(user)
     db.commit()
+
+def create_user_by_admin(db: Session, user_in: AdminUserCreate) -> User:
+    """由 Admin 建立新使用者，可以指定角色和啟用狀態"""
+    hashed_password = get_password_hash(user_in.password)
+    db_user = User(
+        email=user_in.email,
+        username=user_in.username,
+        hashed_password=hashed_password,
+        role=user_in.role,
+        is_active=user_in.is_active
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user

@@ -2,7 +2,7 @@
   <v-container fluid>
     <v-row>
       <v-col>
-        <h1 class="text-h4">儀表板</h1>
+        <h1 class="text-h4">個人檔案</h1>
         <p v-if="authStore.user">歡迎回來, {{ authStore.user.username }}!</p>
       </v-col>
     </v-row>

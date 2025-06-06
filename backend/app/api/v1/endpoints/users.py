@@ -6,7 +6,7 @@ from typing import List, Any
 from app.db.session import get_db
 from app.core.security import get_current_active_user
 from app.models.user import User, UserRole # 匯入 User 和 UserRole
-from app.schemas.user import UserRead # 用於回應
+from app.schemas.user import UserRead, AdminUserCreate, AdminResetPassword # 用於回應
 from app.schemas.admin import AdminUserUpdate # 用於管理員更新使用者
 from app.crud import user as crud_user
 
@@ -168,4 +168,37 @@ async def update_own_password(
     crud_user.update_user_password(db=db, user=current_user, new_password=password_data.new_password)
     
     # HTTP 204 不需要回傳 body
+    return
+
+@router.post("/", response_model=UserRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin_role)])
+async def create_user_as_admin(
+    user_in: AdminUserCreate,
+    db: Session = Depends(get_db),
+):
+    """
+    (Admin only) 建立新使用者，可指定角色。
+    """
+    # 檢查 email 和 username 是否已被註冊
+    if crud_user.get_user_by_email(db, email=user_in.email):
+        raise HTTPException(status_code=400, detail="Email already registered")
+    if crud_user.get_user_by_username(db, username=user_in.username):
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    user = crud_user.create_user_by_admin(db=db, user_in=user_in)
+    return user
+
+@router.patch("/{user_id}/reset-password", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin_role)])
+async def reset_password_by_admin(
+    user_id: int,
+    password_data: AdminResetPassword,
+    db: Session = Depends(get_db),
+):
+    """
+    (Admin only) 重設指定使用者的密碼。
+    """
+    user = crud_user.get_user(db, user_id=user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    crud_user.update_user_password(db=db, user=user, new_password=password_data.new_password)
     return

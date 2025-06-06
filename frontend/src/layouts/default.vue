@@ -13,7 +13,7 @@
 
       <template v-slot:extension>
         <v-tabs align-with-title>
-          <v-tab to="/">儀表板</v-tab>
+          <v-tab to="/">個人檔案</v-tab>
           <v-tab to="/profile">個人資料</v-tab>
           <v-tab v-if="isManagerOrAdmin" to="/admin/files">檔案管理</v-tab>
           <v-tab v-if="isAdmin" to="/admin/users">使用者管理</v-tab>

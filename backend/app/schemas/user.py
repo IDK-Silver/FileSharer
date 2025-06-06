@@ -40,3 +40,13 @@ class UserUpdatePassword(BaseModel):
     current_password: str
     new_password: str = Field(..., min_length=6)
     confirm_password: str
+    
+class AdminUserCreate(BaseModel):
+    email: EmailStr
+    username: str
+    password: str = Field(..., min_length=6)
+    role: UserRole = UserRole.USER
+    is_active: bool = True
+    
+class AdminResetPassword(BaseModel):
+    new_password: str = Field(..., min_length=6)

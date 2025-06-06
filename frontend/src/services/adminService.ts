@@ -90,3 +90,20 @@ export async function deleteUserByAdmin(userId: number): Promise<User> {
 export async function getAllFiles(): Promise<FileMetadata[]> {
   return request<FileMetadata[]>(`${API_BASE_URL}/files/all`);
 }
+
+export async function createUserByAdmin(userData: any): Promise<User> {
+  return request<User>(`${API_BASE_URL}/users/`, {
+    method: "POST",
+    body: JSON.stringify(userData),
+  });
+}
+
+export async function resetPasswordByAdmin(
+  userId: number,
+  newPassword: string
+): Promise<void> {
+  await request<void>(`${API_BASE_URL}/users/${userId}/reset-password`, {
+    method: "PATCH",
+    body: JSON.stringify({ new_password: newPassword }),
+  });
+}

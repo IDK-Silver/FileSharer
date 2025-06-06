@@ -88,6 +88,17 @@ export const useAdminStore = defineStore("admin", () => {
     }
   }
 
+  async function createUser(userData: any) {
+    // 呼叫 service，成功後將新使用者加到列表頂部
+    const newUser = await adminService.createUserByAdmin(userData);
+    users.value.unshift(newUser);
+  }
+
+
+  async function resetUserPassword(userId: number, newPassword: string) {
+    await adminService.resetPasswordByAdmin(userId, newPassword);
+  }
+
   return {
     users,
     allFiles,
@@ -98,5 +109,7 @@ export const useAdminStore = defineStore("admin", () => {
     updateUser,
     deleteUser,
     fetchAllFiles,
+    createUser,
+    resetUserPassword,
   };
 });
