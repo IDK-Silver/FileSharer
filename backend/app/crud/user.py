@@ -120,3 +120,10 @@ def update_current_user_username(db: Session, user_to_update: User, new_username
     db.commit()
     db.refresh(user_to_update)
     return user_to_update
+
+def update_user_password(db: Session, *, user: User, new_password: str) -> None:
+    """更新指定使用者的密碼"""
+    hashed_password = get_password_hash(new_password)
+    user.hashed_password = hashed_password
+    db.add(user)
+    db.commit()

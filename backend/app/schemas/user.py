@@ -35,3 +35,8 @@ class UserUpdate(BaseModel):
 
 class UserUpdateUsername(BaseModel): # <--- 新增這個 Schema
     username: str = Field(..., min_length=3, max_length=100) # 新的使用者名稱，加上驗證
+    
+class UserUpdatePassword(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=6)
+    confirm_password: str

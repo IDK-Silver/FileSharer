@@ -57,3 +57,12 @@ def update_file_filename(
         db.commit()
         db.refresh(db_file)
     return db_file
+
+def get_all_files(db: Session, owner_id: Optional[int] = None, skip: int = 0, limit: int = 100) -> List[FileMetadata]:
+    """
+    獲取所有檔案的列表，如果提供了 owner_id，則按擁有者過濾。
+    """
+    query = db.query(FileMetadata)
+    if owner_id is not None:
+        query = query.filter(FileMetadata.owner_id == owner_id)
+    return query.order_by(FileMetadata.uploaded_at.desc()).offset(skip).limit(limit).all()

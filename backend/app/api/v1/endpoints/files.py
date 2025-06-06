@@ -1,5 +1,8 @@
 # backend/app/api/v1/endpoints/files.py
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File as FastAPIFile
+from fastapi import (
+    APIRouter, Depends, HTTPException,
+    status, UploadFile, File as FastAPIFile, Query
+)
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid # For generating unique filenames in S3
@@ -14,6 +17,7 @@ from app.crud import file as crud_file
 from app.services.storage_interface import StorageInterface
 from app.dependencies import get_storage_service # Import the dependency
 from app.core.config import settings
+from app.api.v1.endpoints.users import require_manager_or_admin_role
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -158,9 +162,11 @@ async def delete_user_file(
     file_meta = crud_file.get_file_metadata_by_id(db, file_id=file_id)
 
     if not file_meta:
+        # 保持不變：找不到檔案直接回 404
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
 
-    # Permission Check
+    # 1. 檔案擁有者本人可以刪除
+    # 2. Manager 或 Admin 角色的使用者也可以刪除
     if file_meta.owner_id != current_user.id and current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to delete this file.")
 
@@ -221,3 +227,16 @@ async def rename_file_endpoint(
 
     logger.info(f"File ID: {file_id} successfully renamed to '{updated_file.filename}' by user {current_user.username}")
     return updated_file
+
+@router.get("/all", response_model=List[FileRead], dependencies=[Depends(require_manager_or_admin_role)])
+async def list_all_files_for_admin(
+    db: Session = Depends(get_db),
+    owner_id: Optional[int] = Query(None, description="Filter files by owner ID"),
+    skip: int = 0,
+    limit: int = 100
+):
+    """
+    (Admin/Manager Only) 獲取系統中的所有檔案，可選擇性地按擁有者 ID 過濾。
+    """
+    files = crud_file.get_all_files(db=db, owner_id=owner_id, skip=skip, limit=limit)
+    return files

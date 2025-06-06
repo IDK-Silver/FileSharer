@@ -11,6 +11,7 @@ from app.schemas.admin import AdminUserUpdate # 用於管理員更新使用者
 from app.crud import user as crud_user
 
 from app.schemas.user import UserUpdateUsername # 用於更新使用者名稱
+from app.schemas.user import UserUpdatePassword # 
 import logging
 
 logger = logging.getLogger(__name__) # 設定 logger
@@ -30,7 +31,16 @@ def require_admin_role(current_user: User = Depends(get_current_active_user)):
         )
     return current_user
 
-# 如果也允許 MANAGER 存取某些管理端點，可以建立類似的 require_manager_or_admin_role 相依性
+def require_manager_or_admin_role(current_user: User = Depends(get_current_active_user)):
+    """
+    相依性：要求目前使用者必須是 MANAGER 或 ADMIN 角色。
+    """
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user doesn't have enough privileges (Manager or Admin role required)",
+        )
+    return current_user
 
 @router.get("/", response_model=List[UserRead], dependencies=[Depends(require_admin_role)])
 async def read_users_by_admin(
@@ -130,3 +140,32 @@ async def update_own_username(
     
     logger.info(f"User ID: {current_user.id} successfully updated username from '{current_user.username}' to '{updated_user.username}'")
     return updated_user
+
+@router.patch("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+async def update_own_password(
+    password_data: UserUpdatePassword,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    更新目前使用者自己的密碼。
+    """
+    # 驗證舊密碼是否正確
+    if not crud_user.verify_password(password_data.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password",
+        )
+    
+    # 檢查新密碼和確認密碼是否相符
+    if password_data.new_password != password_data.confirm_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password and confirmation password do not match",
+        )
+
+    # 更新密碼
+    crud_user.update_user_password(db=db, user=current_user, new_password=password_data.new_password)
+    
+    # HTTP 204 不需要回傳 body
+    return
