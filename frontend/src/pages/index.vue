@@ -136,7 +136,19 @@
     <div v-if="selectedFile" class="pa-6">
       <!-- 檔案預覽區域 -->
       <v-card class="mb-6 elevation-2" rounded="lg">
-        <div class="d-flex align-center justify-center bg-gradient-secondary rounded-lg" style="height: 200px;">
+        <v-img v-if="isImage(selectedFile.file_type)" :src="previewUrl" height="200" class="rounded-lg" cover>
+          <template v-slot:placeholder>
+            <div class="d-flex align-center justify-center fill-height bg-grey-lighten-2">
+              <v-progress-circular color="grey-lighten-4" indeterminate></v-progress-circular>
+            </div>
+          </template>
+          <template v-slot:error>
+            <div class="d-flex align-center justify-center fill-height bg-grey-lighten-2">
+              <v-icon icon="mdi-alert-circle-outline" size="60" color="grey"></v-icon>
+            </div>
+          </template>
+        </v-img>
+        <div v-else class="d-flex align-center justify-center bg-gradient-secondary rounded-lg" style="height: 200px;">
           <v-icon :icon="getFileIcon(selectedFile.file_type)" size="80" color="white"></v-icon>
         </div>
       </v-card>
@@ -271,6 +283,9 @@ const uploadDialog = ref(false);
 const infoDrawer = reactive({ show: false });
 const selectedFile = ref<FileMetadata | null>(null);
 
+// 👇👇👇 新增一個 ref 來儲存預覽 URL 👇👇👇
+const previewUrl = ref<string | null>(null);
+
 // 重新命名對話框狀態
 const renameDialog = reactive({
   show: false,
@@ -331,6 +346,11 @@ const getFileIcon = (fileType: string | null): string => {
   return 'mdi-file-document-outline';
 };
 
+// 👇👇👇 新增 isImage 輔助函式 👇👇👇
+const isImage = (fileType: string | null): boolean => {
+  return fileType ? fileType.startsWith('image/') : false;
+};
+
 // 格式化日期
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -343,10 +363,25 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-// 顯示檔案資訊
-const showFileInfo = (item: FileMetadata) => {
+// 👇👇👇 修改 showFileInfo 函式 👇👇👇
+const showFileInfo = async (item: FileMetadata) => {
   selectedFile.value = item;
   infoDrawer.show = true;
+  previewUrl.value = null; // 先清除舊的預覽
+
+  // 如果是圖片類型，則為它產生一個預覽連結
+  if (isImage(item.file_type)) {
+    try {
+      // 請求一個短時效的 URL 用於預覽 (例如 5 分鐘)
+      const linkInfo = await filesStore.generateShareLink(item.id, 300);
+      if (linkInfo && linkInfo.url) {
+        previewUrl.value = linkInfo.url;
+      }
+    } catch (error) {
+      console.error('無法獲取圖片預覽連結:', error);
+      // 如果獲取失敗，previewUrl 保持為 null，v-img 會顯示 error 插槽的內容
+    }
+  }
 };
 
 // 開啟重新命名對話框
