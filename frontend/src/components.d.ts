@@ -9,6 +9,9 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppFooter: typeof import('./components/AppFooter.vue')['default']
+    FileUpload: typeof import('./components/FileUpload.vue')['default']
+    FileUploadDialog: typeof import('./components/FileUploadDialog.vue')['default']
+    FileUploadFialog: typeof import('./components/FileUploadFialog.vue')['default']
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
