@@ -3,7 +3,7 @@ import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 from typing import IO, Optional, Any
 import logging
-
+from urllib.parse import quote
 from app.core.config import settings
 from .storage_interface import StorageInterface
 
@@ -12,13 +12,11 @@ logger = logging.getLogger(__name__)
 class S3Service(StorageInterface):
     def __init__(self):
         try:
-            # For AWS Academy, session_token is crucial
-            # If not using temporary credentials, aws_session_token can be None
             self.s3_client = boto3.client(
                 "s3",
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                aws_session_token=settings.AWS_SESSION_TOKEN, # Pass session token
+                aws_session_token=settings.AWS_SESSION_TOKEN,
                 region_name=settings.AWS_REGION
             )
             self.bucket_name = settings.S3_BUCKET_NAME
@@ -30,7 +28,6 @@ class S3Service(StorageInterface):
         except Exception as e:
             logger.error(f"Error initializing S3Service: {e}")
             raise
-
 
     def upload_file(
         self, file_content: IO[Any], destination_path: str, content_type: Optional[str] = None
@@ -54,9 +51,8 @@ class S3Service(StorageInterface):
             return destination_path
         except ClientError as e:
             logger.error(f"Failed to upload to S3 ({self.bucket_name}/{destination_path}): {e}")
-            # Consider more specific exception handling or re-raising
             raise IOError(f"S3 upload failed: {e}")
-        except Exception as e: # Catch other potential errors like uninitialized client
+        except Exception as e:
             logger.error(f"An unexpected error occurred during S3 upload: {e}")
             raise
 
@@ -75,21 +71,15 @@ class S3Service(StorageInterface):
         self, storage_path: str,
         expiration_seconds: int,
         http_method: str = "GET",
-        download_filename: Optional[str] = None # 新增參數，用於指定下載時的檔名
-
+        download_filename: Optional[str] = None
     ) -> Optional[str]:
         if not self.s3_client or not self.bucket_name:
             logger.error("S3 client or bucket name not initialized properly.")
-            # Depending on desired behavior, could return None or raise error
             return None 
-            # raise ConnectionError("S3 client not initialized.")
 
-        # Ensure the http_method is one that generate_presigned_url's ClientMethod expects
-        # Common client methods for presigned URLs are 'get_object' and 'put_object'
         client_method_map = {
             "GET": "get_object",
             "PUT": "put_object",
-            # Add more if needed, e.g., "DELETE": "delete_object"
         }
         s3_client_method = client_method_map.get(http_method.upper())
 
@@ -97,29 +87,32 @@ class S3Service(StorageInterface):
             logger.error(f"Unsupported http_method '{http_method}' for S3 presigned URL generation.")
             return None
 
-
         params = {"Bucket": self.bucket_name, "Key": storage_path}
         
         if http_method.upper() == "GET" and download_filename:
-            # 為了確保檔名在 HTTP 標頭中正確編碼，特別是包含非 ASCII 字元時
-            # RFC 6266 建議使用 filename*=UTF-8''<urlencoded_filename> 格式
-            # 但簡單的 attachment; filename="<filename>" 對很多現代瀏覽器也有效
-            # Boto3/S3 通常能處理好檔名的編碼，我們只需提供原始檔名
-            params["ResponseContentDisposition"] = f'attachment; filename="{download_filename}"'
-            # 如果希望瀏覽器嘗試直接顯示而不是下載 (例如圖片、PDF)，可以使用 'inline'
-            # params["ResponseContentDisposition"] = f'inline; filename="{download_filename}"'
+            try:
+                # 先嘗試將檔名編碼為 ASCII，如果失敗，則表示包含非 ASCII 字元
+                download_filename.encode('ascii')
+                # 如果成功，表示是純 ASCII 檔名，使用簡單格式
+                disposition = f'attachment; filename="{download_filename}"'
+            except UnicodeEncodeError:
+                # 如果失敗，表示包含中文等字元，使用 RFC 6266 推薦的格式
+                encoded_filename = quote(download_filename)
+                disposition = f"attachment; filename*=UTF-8''{encoded_filename}"
+
+            params["ResponseContentDisposition"] = disposition
         
         try:
             url = self.s3_client.generate_presigned_url(
                 ClientMethod=s3_client_method,
                 Params=params,
                 ExpiresIn=expiration_seconds,
-                HttpMethod=http_method.upper() # Explicitly pass HttpMethod for clarity and correctness
+                HttpMethod=http_method.upper()
             )
             return url
         except ClientError as e:
             logger.error(f"Failed to generate S3 presigned URL for {storage_path}: {e}")
             return None
-        except Exception as e: # Catch other potential errors
+        except Exception as e:
             logger.error(f"An unexpected error occurred generating presigned URL: {e}")
             return None
