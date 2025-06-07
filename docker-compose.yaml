@@ -89,6 +89,21 @@ services:
       - filesharer-network
     restart: unless-stopped
 
+  frontend:
+    # 從 './frontend' 目錄中的 Dockerfile 進行建置
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    # container_name: my-frontend
+    ports:
+      # 將主機的 8080 port 映射到容器的 80 port
+      # 您可以透過 http://localhost:8080 存取前端
+      - "8080:80"
+    networks:
+      - filesharer-network
+    # restart: always # 可選：如果容器停止，總是重新啟動
+
+
 volumes:
   mysql_data:
     driver: local

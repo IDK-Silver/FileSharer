@@ -36,14 +36,14 @@ FileSharer 是一個基於 FastAPI 和 Vue.js 3 建構的高效能檔案分享�
 * **建置工具**: Vite
 * **路由管理**: Vue Router (搭配 `unplugin-vue-router` 自動化路由)
 * **狀態管理**: Pinia
+* **容器化**: Docker (開發和生產環境)
 
 ## 🚀 快速開始
 
 ### 環境需求
 
 * Docker & Docker Compose
-* Node.js (建議版本 18+)
-* Poetry (Python 依賴管理工具)
+* Git
 
 ### 本地開發設定
 
@@ -54,7 +54,7 @@ git clone <your-repository-url>
 cd FileSharer
 ```
 
-2. **設定後端環境變數**
+2. **設定環境變數**
 
 ```bash
 # 複製環境變數範本
@@ -64,26 +64,35 @@ cp backend/.env.example backend/.env
 vim backend/.env
 ```
 
-3. **啟動開發環境**
+3. **啟動完整開發環境**
 
 ```bash
-# 使用 Docker Compose 啟動後端和資料庫服務
+# 使用 Docker Compose 一次啟動所有服務（後端、前端、資料庫、MinIO）
 docker-compose up -d --build
 ```
 
-4. **設定並啟動前端**
+4. **存取應用程式**
+
+* **前端介面**: <http://localhost:8080>
+
+* **後端 API 文件 (Swagger UI)**: <http://localhost:8000/docs>
+* **後端 API 文件 (ReDoc)**: <http://localhost:8000/redoc>
+* **MinIO 控制台**: <http://localhost:9001> (admin:minioadmin)
+
+### 開發模式
+
+如果您需要進行前端開發並使用熱重載功能：
 
 ```bash
+# 啟動後端服務
+docker-compose up -d db minio create-minio-bucket backend
+
+# 在本地開發前端
 cd frontend
 npm install
 npm run dev
+# 前端將在 http://localhost:3000 運行
 ```
-
-5. **存取應用程式**
-
-- **前端介面**: <http://localhost:3000>
-* **後端 API 文件 (Swagger UI)**: <http://localhost:8000/docs>
-* **後端 API 文件 (ReDoc)**: <http://localhost:8000/redoc>
 
 ### 生產環境部署
 
@@ -96,26 +105,21 @@ npm run dev
 DATABASE_URL=mysql+pymysql://username:password@your-rds-endpoint:3306/database_name
 ```
 
-2. **僅啟動 Backend**
+2. **建置並部署服務**
 
 ```bash
-# 使用生產配置，僅啟動 backend
-docker-compose -f docker-compose.yaml -f docker-compose.prod.yaml up backend
-```
+# 使用生產配置建置
+docker-compose -f docker-compose.yaml -f docker-compose.prod.yaml build
 
-3. **建置前端**
-
-```bash
-cd frontend
-npm run build
-# 將 dist/ 目錄部署到 CDN 或靜態網站服務
+# 啟動服務
+docker-compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
 ```
 
 #### AWS 部署建議
 
 * **資料庫**: Amazon RDS (MySQL)
 * **後端**: Amazon ECS 或 EC2
-* **前端**: Amazon S3 + CloudFront
+* **前端**: Amazon ECS 或使用建置後的靜態檔案部署到 S3 + CloudFront
 * **負載均衡**: Application Load Balancer
 * **檔案儲存**: Amazon S3
 
@@ -149,7 +153,7 @@ poetry run alembic history
 docker-compose down -v
 
 # 重新啟動
-docker-compose up
+docker-compose up -d --build
 ```
 
 ## 📁 專案結構
@@ -176,15 +180,34 @@ FileSharer/
 │   │   └── utils/        # 工具函數
 │   ├── public/           # 靜態資源
 │   ├── package.json      # Node.js 依賴
-│   └── vite.config.ts    # Vite 配置
-├── docker-compose.yaml    # 開發環境配置
-├── docker-compose.prod.yaml # 生產環境配置
+│   ├── vite.config.ts    # Vite 配置
+│   └── Dockerfile        # Docker 配置
+├── docker-compose.yaml    # Docker Compose 配置
 └── README.md             # 專案說明
 ```
 
 ## 🔧 開發指南
 
-### Backend 開發
+### 使用 Docker 開發
+
+**推薦方式 - 完全容器化開發**
+
+```bash
+# 啟動所有服務
+docker-compose up -d --build
+
+# 查看日誌
+docker-compose logs -f frontend
+docker-compose logs -f backend
+
+# 重新建置特定服務
+docker-compose build frontend
+docker-compose up -d frontend
+```
+
+### 本地開發（不使用 Docker）
+
+**Backend 開發**
 
 ```bash
 # 進入 backend 目錄
@@ -197,7 +220,7 @@ poetry install
 poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Frontend 開發
+**Frontend 開發**
 
 ```bash
 # 進入 frontend 目錄
@@ -222,25 +245,36 @@ npm run type-check
 npm run lint
 ```
 
-### 常用指令
+### 常用 Docker 指令
 
 ```bash
 # 查看服務狀態
 docker-compose ps
 
-# 查看日誌
+# 查看特定服務日誌
 docker-compose logs -f backend
+docker-compose logs -f frontend
 
 # 重新建置映像檔
 docker-compose build --no-cache
 
 # 停止服務
 docker-compose down
+
+# 停止並清理資料
+docker-compose down -v
+
+# 僅啟動特定服務
+docker-compose up -d db minio backend
+
+# 進入容器
+docker-compose exec backend bash
+docker-compose exec frontend sh
 ```
 
 ## ⚙️ 環境變數說明
 
-### 開發環境
+### 後端環境變數 (backend/.env)
 
 ```bash
 # MySQL 設定
@@ -257,17 +291,29 @@ DEBUG=True
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 
-# S3 設定
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_S3_BUCKET=your_bucket_name
+# S3/MinIO 設定
+AWS_ACCESS_KEY_ID=minioadmin
+AWS_SECRET_ACCESS_KEY=minioadmin
+S3_BUCKET_NAME=filesharer-bucket
 AWS_REGION=us-east-1
+S3_ENDPOINT_URL=http://minio:9000  # Docker 內部網路
 
-# 前端 API 端點
-VITE_API_BASE_URL=http://localhost:8000
+# MinIO 設定
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=minioadmin
 ```
 
-### 生產環境
+### 前端環境變數
+
+前端的環境變數直接在 docker-compose.yaml 中設定：
+
+```yaml
+environment:
+  - VITE_API_BASE_URL=http://localhost:8000
+  - VITE_APP_TITLE=FileSharer
+```
+
+### 生產環境設定
 
 ```bash
 # 外部資料庫
@@ -285,36 +331,60 @@ VITE_API_BASE_URL=https://your-api-domain.com
 
 ### 常見問題
 
-1. **資料庫連線失敗**
-   * 檢查環境變數設定
-   * 確認資料庫服務是否啟動
-   * 驗證網路連線
+1. **服務啟動失敗**
 
-2. **Migration 錯誤**
-   * 重置資料庫：`docker-compose down -v`
-   * 檢查 migration 檔案語法
+   ```bash
+   # 查看詳細日誌
+   docker-compose logs
+   
+   # 重新建置
+   docker-compose build --no-cache
+   
+   # 清理並重新啟動
+   docker-compose down -v
+   docker-compose up -d --build
+   ```
 
-3. **容器啟動失敗**
-   * 查看日誌：`docker-compose logs`
-   * 重新建置：`docker-compose build --no-cache`
+2. **前端無法連接後端**
+   * 檢查 `VITE_API_BASE_URL` 環境變數
+   * 確認後端服務已啟動：`docker-compose ps`
+   * 檢查網路設定：`docker network ls`
 
-4. **前端 API 連線問題**
-   * 檢查 `VITE_API_BASE_URL` 設定
-   * 確認 CORS 設定正確
-   * 檢查網路請求是否被阻擋
+3. **資料庫連線問題**
+   * 檢查 MySQL 容器狀態：`docker-compose logs db`
+   * 驗證環境變數設定
+   * 等待資料庫完全啟動（健康檢查通過）
 
-### 日誌查看
+4. **MinIO/S3 問題**
+   * 檢查 MinIO 服務：`docker-compose logs minio`
+   * 驗證 bucket 是否建立：`docker-compose logs create-minio-bucket`
+   * 確認 S3 設定正確
+
+5. **容器佔用過多資源**
+
+   ```bash
+   # 查看資源使用情況
+   docker stats
+   
+   # 清理未使用的映像檔和容器
+   docker system prune -a
+   ```
+
+### 開發技巧
 
 ```bash
-# 查看所有服務日誌
-docker-compose logs
+# 只重啟特定服務
+docker-compose restart frontend
 
-# 查看特定服務日誌
-docker-compose logs backend
-docker-compose logs db
+# 查看容器內部
+docker-compose exec frontend sh
+docker-compose exec backend bash
 
-# 即時日誌
-docker-compose logs -f backend
+# 實時監控日誌
+docker-compose logs -f --tail=100 frontend backend
+
+# 強制重新建置並啟動
+docker-compose up -d --build --force-recreate frontend
 ```
 
 ## 🤝 貢獻指南
@@ -332,6 +402,7 @@ docker-compose logs -f backend
 * Backend: 遵循 PEP 8 和 Black 格式化
 * Frontend: 使用 ESLint 和 Prettier
 * 提交訊息: 使用 Conventional Commits 格式
+* Docker: 遵循最佳實踐，使用多階段建置
 
 ## 📄 授權
 
