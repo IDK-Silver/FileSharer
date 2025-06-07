@@ -29,7 +29,7 @@
           <div class="d-flex align-center search-container">
             <v-text-field
               v-model="search"
-              label="依使用者名稱篩選"
+              label="依使用者ID篩選"
               prepend-inner-icon="mdi-magnify"
               variant="outlined"
               density="compact"
@@ -159,14 +159,14 @@
             <p class="text-body-1 mb-3">您確定要刪除以下檔案嗎？</p>
             <v-card variant="outlined" class="pa-4">
               <div class="d-flex align-center">
-                <v-icon :color="getFileTypeColor(deleteDialog.file?.file_type)" class="mr-3">
-                  {{ getFileTypeIcon(deleteDialog.file?.file_type) }}
+                <v-icon :color="getFileTypeColor(deleteDialog.file?.file_type || null)" class="mr-3">
+                  {{ getFileTypeIcon(deleteDialog.file?.file_type || null) }}
                 </v-icon>
                 <div>
                   <div class="font-weight-medium">{{ deleteDialog.file?.filename }}</div>
                   <div class="text-caption text-grey">
                     擁有者ID: {{ deleteDialog.file?.owner_id }} | 
-                    大小: {{ formatBytes(deleteDialog.file?.size) }}
+                    大小: {{ formatBytes(deleteDialog.file?.size || null) }}
                   </div>
                 </div>
               </div>
@@ -231,13 +231,14 @@ const filesStore = useFilesStore();
 const search = ref('');
 const snackbar = reactive({ show: false, text: '', color: 'success' });
 
+// 修正 headers 類型定義
 const headers = [
   { title: '檔案名稱', key: 'filename', width: '25%' },
   { title: '擁有者ID', key: 'owner_id', width: '15%' },
   { title: '大小', key: 'size', width: '12%' },
   { title: '上傳時間', key: 'uploaded_at', width: '20%' },
-  { title: '操作', key: 'actions', sortable: false, width: '15%', align: 'center' },
-];
+  { title: '操作', key: 'actions', sortable: false, width: '15%', align: 'center' as const },
+] as const;
 
 const deleteDialog = reactive({ 
   show: false, 
@@ -309,7 +310,7 @@ const handleDownload = async (item: FileMetadata) => {
   }
 };
 
-// 工具函數
+// 工具函數 - 修正 null 處理
 const formatBytes = (bytes: number | null): string => {
   if (!bytes) return 'N/A';
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -325,7 +326,10 @@ const formatTime = (dateString: string): string => {
   return new Date(dateString).toLocaleTimeString('zh-TW');
 };
 
-const getFileTypeIcon = (fileType: string): string => {
+// 修正函數參數類型，處理 null 值
+const getFileTypeIcon = (fileType: string | null): string => {
+  if (!fileType) return 'mdi-file';
+  
   const iconMap: Record<string, string> = {
     'image/jpeg': 'mdi-file-image',
     'image/png': 'mdi-file-image',
@@ -340,7 +344,9 @@ const getFileTypeIcon = (fileType: string): string => {
   return iconMap[fileType] || 'mdi-file';
 };
 
-const getFileTypeColor = (fileType: string): string => {
+const getFileTypeColor = (fileType: string | null): string => {
+  if (!fileType) return 'grey';
+  
   const colorMap: Record<string, string> = {
     'image/jpeg': 'green',
     'image/png': 'green',

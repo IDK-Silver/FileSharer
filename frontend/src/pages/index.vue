@@ -70,8 +70,8 @@
 
             <!-- 檔案表格 -->
             <v-data-table v-else-if="!filesStore.isLoading" :headers="headers" :items="filesStore.files"
-              :loading="filesStore.isLoading" item-key="id" class="file-table"
-              @click:row="(_, { item }) => showFileInfo(item)" hover :items-per-page="10">
+              :loading="filesStore.isLoading" item-key="id" class="file-table" @click:row="handleRowClick" hover
+              :items-per-page="10">
               <template v-slot:item.filename="{ item }">
                 <div class="d-flex align-center py-2">
                   <v-avatar size="40" class="mr-3" color="primary-lighten-4">
@@ -136,7 +136,8 @@
     <div v-if="selectedFile" class="pa-6">
       <!-- 檔案預覽區域 -->
       <v-card class="mb-6 elevation-2" rounded="lg">
-        <v-img v-if="isImage(selectedFile.file_type)" :src="previewUrl" height="200" class="rounded-lg" cover>
+        <v-img v-if="isImage(selectedFile.file_type) && previewUrl" :src="previewUrl" height="200" class="rounded-lg"
+          cover>
           <template v-slot:placeholder>
             <div class="d-flex align-center justify-center fill-height bg-grey-lighten-2">
               <v-progress-circular color="grey-lighten-4" indeterminate></v-progress-circular>
@@ -283,7 +284,7 @@ const uploadDialog = ref(false);
 const infoDrawer = reactive({ show: false });
 const selectedFile = ref<FileMetadata | null>(null);
 
-// 👇👇👇 新增一個 ref 來儲存預覽 URL 👇👇👇
+// 預覽 URL - 明確指定可以是 string 或 null
 const previewUrl = ref<string | null>(null);
 
 // 重新命名對話框狀態
@@ -329,6 +330,11 @@ onMounted(() => {
   filesStore.fetchFiles();
 });
 
+// 處理行點擊事件 - 將類型註解移到 script 中
+const handleRowClick = (event: any, { item }: { item: FileMetadata }) => {
+  showFileInfo(item);
+};
+
 // 根據檔案類型返回對應圖示
 const getFileIcon = (fileType: string | null): string => {
   if (!fileType) return 'mdi-file-document-outline';
@@ -346,7 +352,7 @@ const getFileIcon = (fileType: string | null): string => {
   return 'mdi-file-document-outline';
 };
 
-// 👇👇👇 新增 isImage 輔助函式 👇👇👇
+// isImage 輔助函式
 const isImage = (fileType: string | null): boolean => {
   return fileType ? fileType.startsWith('image/') : false;
 };
@@ -363,7 +369,7 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-// 👇👇👇 修改 showFileInfo 函式 👇👇👇
+// 顯示檔案資訊
 const showFileInfo = async (item: FileMetadata) => {
   selectedFile.value = item;
   infoDrawer.show = true;
@@ -379,7 +385,7 @@ const showFileInfo = async (item: FileMetadata) => {
       }
     } catch (error) {
       console.error('無法獲取圖片預覽連結:', error);
-      // 如果獲取失敗，previewUrl 保持為 null，v-img 會顯示 error 插槽的內容
+      // 如果獲取失敗，previewUrl 保持為 null
     }
   }
 };
@@ -521,11 +527,11 @@ const handleDelete = async () => {
   background: linear-gradient(135deg, #424242 0%, #757575 100%);
 }
 
-.file-table>>>.v-data-table__wrapper {
+.file-table :deep(.v-data-table__wrapper) {
   border-radius: 0 0 12px 12px;
 }
 
-.file-table>>>tr:hover {
+.file-table :deep(tr:hover) {
   background-color: rgba(25, 118, 210, 0.04) !important;
 }
 

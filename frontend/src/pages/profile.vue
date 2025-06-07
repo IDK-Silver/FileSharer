@@ -15,7 +15,7 @@
                   {{ authStore.user?.username || 'N/A' }}
                 </h2>
                 <p class="text-body-2 text-grey mb-0">
-                  {{ getRoleDisplayName(authStore.user?.role) }}
+                  {{ getRoleDisplayName(authStore.user?.role || 'user') }}
                 </p>
               </div>
             </div>
@@ -29,7 +29,7 @@
               <h3 class="text-h6 font-weight-medium text-grey-darken-2 mb-4">
                 個人資訊
               </h3>
-              
+
               <v-row>
                 <v-col cols="12" sm="6">
                   <div class="info-item">
@@ -62,7 +62,7 @@
                       <span class="text-body-2 font-weight-medium text-grey-darken-1">角色</span>
                     </div>
                     <p class="text-body-1 text-grey-darken-3 ml-6">
-                      {{ getRoleDisplayName(authStore.user?.role) }}
+                      {{ getRoleDisplayName(authStore.user?.role || 'user') }}
                     </p>
                   </div>
                 </v-col>
@@ -70,10 +70,7 @@
                 <v-col cols="12" sm="6">
                   <div class="info-item">
                     <div class="d-flex align-center mb-2">
-                      <v-icon 
-                        :color="authStore.user?.is_active ? 'success' : 'error'" 
-                        class="mr-2"
-                      >
+                      <v-icon :color="authStore.user?.is_active ? 'success' : 'error'" class="mr-2">
                         mdi-circle
                       </v-icon>
                       <span class="text-body-2 font-weight-medium text-grey-darken-1">帳戶狀態</span>
@@ -90,20 +87,11 @@
           <!-- 操作按鈕 -->
           <v-card-actions class="pa-6 pt-0">
             <v-spacer></v-spacer>
-            <v-btn 
-              variant="outlined" 
-              color="primary" 
-              class="mr-2 text-none"
-              @click="usernameDialog.show = true"
-            >
+            <v-btn variant="outlined" color="primary" class="mr-2 text-none" @click="usernameDialog.show = true">
               <v-icon start>mdi-account-edit</v-icon>
               修改名稱
             </v-btn>
-            <v-btn 
-              color="primary" 
-              class="text-none"
-              @click="passwordDialog.show = true"
-            >
+            <v-btn color="primary" class="text-none" @click="passwordDialog.show = true">
               <v-icon start>mdi-lock-reset</v-icon>
               修改密碼
             </v-btn>
@@ -118,36 +106,20 @@
         <v-card-title class="text-h6 font-weight-bold pa-6 pb-2">
           修改使用者名稱
         </v-card-title>
-        
+
         <v-card-text class="pa-6 pt-2">
-          <v-text-field
-            label="新的使用者名稱"
-            v-model="usernameDialog.newUsername"
-            variant="outlined"
+          <v-text-field label="新的使用者名稱" v-model="usernameDialog.newUsername" variant="outlined"
             prepend-inner-icon="mdi-account-outline"
-            :error-messages="usernameDialog.error ? [usernameDialog.error] : []"
-            :disabled="usernameDialog.loading"
-            color="primary"
-            autofocus
-          ></v-text-field>
+            :error-messages="usernameDialog.error ? [usernameDialog.error] : []" :disabled="usernameDialog.loading"
+            color="primary" autofocus></v-text-field>
         </v-card-text>
-        
+
         <v-card-actions class="pa-6 pt-0">
           <v-spacer></v-spacer>
-          <v-btn 
-            variant="text" 
-            @click="closeUsernameDialog"
-            :disabled="usernameDialog.loading"
-            class="text-none"
-          >
+          <v-btn variant="text" @click="closeUsernameDialog" :disabled="usernameDialog.loading" class="text-none">
             取消
           </v-btn>
-          <v-btn 
-            color="primary" 
-            @click="handleUpdateUsername" 
-            :loading="usernameDialog.loading"
-            class="text-none"
-          >
+          <v-btn color="primary" @click="handleUpdateUsername" :loading="usernameDialog.loading" class="text-none">
             確認更新
           </v-btn>
         </v-card-actions>
@@ -160,66 +132,35 @@
         <v-card-title class="text-h6 font-weight-bold pa-6 pb-2">
           修改密碼
         </v-card-title>
-        
+
         <v-card-text class="pa-6 pt-2">
           <v-form @submit.prevent="handleUpdatePassword">
-            <v-text-field
-              label="目前密碼"
-              v-model="passwordDialog.currentPassword"
-              variant="outlined"
-              prepend-inner-icon="mdi-lock-outline"
-              :append-inner-icon="showCurrentPassword ? 'mdi-eye' : 'mdi-eye-off'"
-              :type="showCurrentPassword ? 'text' : 'password'"
-              class="mb-4"
-              :disabled="passwordDialog.loading"
-              color="primary"
-              @click:append-inner="showCurrentPassword = !showCurrentPassword"
-            ></v-text-field>
-            
-            <v-text-field
-              label="新密碼"
-              v-model="passwordDialog.newPassword"
-              variant="outlined"
+            <v-text-field label="目前密碼" v-model="passwordDialog.currentPassword" variant="outlined"
+              prepend-inner-icon="mdi-lock-outline" :append-inner-icon="showCurrentPassword ? 'mdi-eye' : 'mdi-eye-off'"
+              :type="showCurrentPassword ? 'text' : 'password'" class="mb-4" :disabled="passwordDialog.loading"
+              color="primary" @click:append-inner="showCurrentPassword = !showCurrentPassword"></v-text-field>
+
+            <v-text-field label="新密碼" v-model="passwordDialog.newPassword" variant="outlined"
               prepend-inner-icon="mdi-lock-plus-outline"
               :append-inner-icon="showNewPassword ? 'mdi-eye' : 'mdi-eye-off'"
-              :type="showNewPassword ? 'text' : 'password'"
-              class="mb-4"
-              :disabled="passwordDialog.loading"
-              color="primary"
-              @click:append-inner="showNewPassword = !showNewPassword"
-            ></v-text-field>
-            
-            <v-text-field
-              label="確認新密碼"
-              v-model="passwordDialog.confirmPassword"
-              variant="outlined"
+              :type="showNewPassword ? 'text' : 'password'" class="mb-4" :disabled="passwordDialog.loading"
+              color="primary" @click:append-inner="showNewPassword = !showNewPassword"></v-text-field>
+
+            <v-text-field label="確認新密碼" v-model="passwordDialog.confirmPassword" variant="outlined"
               prepend-inner-icon="mdi-lock-check-outline"
               :append-inner-icon="showConfirmPassword ? 'mdi-eye' : 'mdi-eye-off'"
               :type="showConfirmPassword ? 'text' : 'password'"
-              :error-messages="passwordDialog.error ? [passwordDialog.error] : []"
-              :disabled="passwordDialog.loading"
-              color="primary"
-              @click:append-inner="showConfirmPassword = !showConfirmPassword"
-            ></v-text-field>
+              :error-messages="passwordDialog.error ? [passwordDialog.error] : []" :disabled="passwordDialog.loading"
+              color="primary" @click:append-inner="showConfirmPassword = !showConfirmPassword"></v-text-field>
           </v-form>
         </v-card-text>
-        
+
         <v-card-actions class="pa-6 pt-0">
           <v-spacer></v-spacer>
-          <v-btn 
-            variant="text" 
-            @click="closePasswordDialog"
-            :disabled="passwordDialog.loading"
-            class="text-none"
-          >
+          <v-btn variant="text" @click="closePasswordDialog" :disabled="passwordDialog.loading" class="text-none">
             取消
           </v-btn>
-          <v-btn 
-            color="primary" 
-            @click="handleUpdatePassword" 
-            :loading="passwordDialog.loading"
-            class="text-none"
-          >
+          <v-btn color="primary" @click="handleUpdatePassword" :loading="passwordDialog.loading" class="text-none">
             確認更新
           </v-btn>
         </v-card-actions>
@@ -227,12 +168,7 @@
     </v-dialog>
 
     <!-- 通知 Snackbar -->
-    <v-snackbar 
-      v-model="snackbar.show" 
-      :color="snackbar.color"
-      rounded="lg"
-      class="mb-4"
-    >
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" rounded="lg" class="mb-4">
       <div class="d-flex align-center">
         <v-icon class="mr-2">
           {{ snackbar.color === 'success' ? 'mdi-check-circle' : 'mdi-alert-circle' }}
@@ -271,14 +207,15 @@ const passwordDialog = reactive({
   error: '',
 });
 
-// 獲取角色顯示名稱
-const getRoleDisplayName = (role: string): string => {
+// 獲取角色顯示名稱 - 修正參數類型以接受 undefined
+const getRoleDisplayName = (role: string | undefined): string => {
   switch (role) {
     case 'admin':
       return '系統管理員';
     case 'manager':
       return '管理者';
     case 'user':
+      return '一般使用者';
     default:
       return '一般使用者';
   }
@@ -306,12 +243,12 @@ async function handleUpdateUsername() {
     usernameDialog.error = '使用者名稱不可為空';
     return;
   }
-  
+
   if (usernameDialog.newUsername.trim().length < 3) {
     usernameDialog.error = '使用者名稱至少需要3個字元';
     return;
   }
-  
+
   usernameDialog.loading = true;
   usernameDialog.error = '';
   try {
@@ -332,22 +269,22 @@ async function handleUpdatePassword() {
     passwordDialog.error = '請輸入目前密碼';
     return;
   }
-  
+
   if (!passwordDialog.newPassword) {
     passwordDialog.error = '請輸入新密碼';
     return;
   }
-  
+
   if (passwordDialog.newPassword.length < 6) {
     passwordDialog.error = '新密碼至少需要6個字元';
     return;
   }
-  
+
   if (passwordDialog.newPassword !== passwordDialog.confirmPassword) {
     passwordDialog.error = '新密碼與確認密碼不符';
     return;
   }
-  
+
   passwordDialog.loading = true;
   passwordDialog.error = '';
   try {
@@ -404,20 +341,20 @@ async function handleUpdatePassword() {
   .profile-header {
     padding: 24px 20px 20px 20px;
   }
-  
+
   .v-card-text {
     padding: 20px !important;
   }
-  
+
   .v-card-actions {
     padding: 20px !important;
     padding-top: 0 !important;
   }
-  
+
   .info-item {
     padding: 12px;
   }
-  
+
   .text-h5 {
     font-size: 1.25rem !important;
   }
