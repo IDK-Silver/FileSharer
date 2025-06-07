@@ -99,10 +99,10 @@ services:
       # 將主機的 8080 port 映射到容器的 80 port
       # 您可以透過 http://localhost:8080 存取前端
       - "8080:80"
+    env_file:
+      - ./frontend/.env
     networks:
       - filesharer-network
-    # restart: always # 可選：如果容器停止，總是重新啟動
-
 
 volumes:
   mysql_data:
