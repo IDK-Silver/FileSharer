@@ -226,3 +226,4 @@ node_modules
 
 #vscode 
 .vscode
+.env.test
