@@ -20,10 +20,10 @@ services:
   minio:
     image: minio/minio:latest
     ports:
-      - "9000:9000" # API port
-      - "9001:9001" # Console port
+      - "9000:9000"
+      - "9001:9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin} # 使用 .env 檔案中的變數，或使用預設值
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     volumes:
       - minio_data:/data
@@ -66,16 +66,30 @@ services:
     networks:
       - filesharer-network
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+      - "8443:443"
+    env_file:
+      - ./frontend/.env     # 只讀取前端專用配置
+    depends_on:
+      - backend
+    networks:
+      - filesharer-network
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE}
     env_file:
-      - ./backend/.env
+      - ./.env              # 讀取根目錄的共用配置（資料庫、存儲）
+      - ./backend/.env      # 讀取後端專用配置
     depends_on:
       create-minio-bucket:
         condition: service_completed_successfully
@@ -83,26 +97,9 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    # volumes:
-    #   - ./backend:/app
     networks:
       - filesharer-network
     restart: unless-stopped
-
-  frontend:
-    # 從 './frontend' 目錄中的 Dockerfile 進行建置
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    # container_name: my-frontend
-    ports:
-      # 將主機的 8080 port 映射到容器的 80 port
-      # 您可以透過 http://localhost:8080 存取前端
-      - "8080:80"
-    env_file:
-      - ./frontend/.env
-    networks:
-      - filesharer-network
 
 volumes:
   mysql_data:

@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     MINIO_ROOT_PASSWORD: Optional[str] = None  # <--- 新增
     MINIO_SERVER_URL: Optional[str] = None
 
-    
+    STORAGE_PROVIDER: str = "s3"
     # --- AWS S3 Settings ---
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
