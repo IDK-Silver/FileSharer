@@ -87,10 +87,6 @@
           <!-- 操作按鈕 -->
           <v-card-actions class="pa-6 pt-0">
             <v-spacer></v-spacer>
-            <v-btn variant="outlined" color="primary" class="mr-2 text-none" @click="usernameDialog.show = true">
-              <v-icon start>mdi-account-edit</v-icon>
-              修改名稱
-            </v-btn>
             <v-btn color="primary" class="text-none" @click="passwordDialog.show = true">
               <v-icon start>mdi-lock-reset</v-icon>
               修改密碼
@@ -99,32 +95,6 @@
         </v-card>
       </v-col>
     </v-row>
-
-    <!-- 修改使用者名稱對話框 -->
-    <v-dialog v-model="usernameDialog.show" max-width="400px" persistent>
-      <v-card rounded="lg">
-        <v-card-title class="text-h6 font-weight-bold pa-6 pb-2">
-          修改使用者名稱
-        </v-card-title>
-
-        <v-card-text class="pa-6 pt-2">
-          <v-text-field label="新的使用者名稱" v-model="usernameDialog.newUsername" variant="outlined"
-            prepend-inner-icon="mdi-account-outline"
-            :error-messages="usernameDialog.error ? [usernameDialog.error] : []" :disabled="usernameDialog.loading"
-            color="primary" autofocus></v-text-field>
-        </v-card-text>
-
-        <v-card-actions class="pa-6 pt-0">
-          <v-spacer></v-spacer>
-          <v-btn variant="text" @click="closeUsernameDialog" :disabled="usernameDialog.loading" class="text-none">
-            取消
-          </v-btn>
-          <v-btn color="primary" @click="handleUpdateUsername" :loading="usernameDialog.loading" class="text-none">
-            確認更新
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
 
     <!-- 修改密碼對話框 -->
     <v-dialog v-model="passwordDialog.show" max-width="400px" persistent>
@@ -191,13 +161,6 @@ const showConfirmPassword = ref(false);
 
 const snackbar = reactive({ show: false, text: '', color: 'success' });
 
-const usernameDialog = reactive({
-  show: false,
-  newUsername: '',
-  loading: false,
-  error: '',
-});
-
 const passwordDialog = reactive({
   show: false,
   currentPassword: '',
@@ -221,12 +184,6 @@ const getRoleDisplayName = (role: string | undefined): string => {
   }
 };
 
-function closeUsernameDialog() {
-  usernameDialog.show = false;
-  usernameDialog.error = '';
-  usernameDialog.newUsername = '';
-}
-
 function closePasswordDialog() {
   passwordDialog.show = false;
   passwordDialog.error = '';
@@ -236,32 +193,6 @@ function closePasswordDialog() {
   showCurrentPassword.value = false;
   showNewPassword.value = false;
   showConfirmPassword.value = false;
-}
-
-async function handleUpdateUsername() {
-  if (!usernameDialog.newUsername.trim()) {
-    usernameDialog.error = '使用者名稱不可為空';
-    return;
-  }
-
-  if (usernameDialog.newUsername.trim().length < 3) {
-    usernameDialog.error = '使用者名稱至少需要3個字元';
-    return;
-  }
-
-  usernameDialog.loading = true;
-  usernameDialog.error = '';
-  try {
-    await authStore.updateMyUsername(usernameDialog.newUsername.trim());
-    snackbar.text = '使用者名稱更新成功！';
-    snackbar.color = 'success';
-    snackbar.show = true;
-    closeUsernameDialog();
-  } catch (e: any) {
-    usernameDialog.error = e.message || '更新失敗';
-  } finally {
-    usernameDialog.loading = false;
-  }
 }
 
 async function handleUpdatePassword() {
