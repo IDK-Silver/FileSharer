@@ -25,8 +25,8 @@
               </div>
 
               <v-form @submit.prevent="handleLogin" ref="loginForm">
-                <v-text-field v-model="username" label="使用者名稱" variant="outlined"
-                  prepend-inner-icon="mdi-account-outline" class="mb-4" :rules="[v => !!v || '請輸入使用者名稱']"
+                <v-text-field v-model="username" label="使用者名稱或信箱" variant="outlined"
+                  prepend-inner-icon="mdi-account-outline" class="mb-4" :rules="[v => !!v || '請輸入使用者名稱或信箱']"
                   :disabled="authStore.loginLoading" color="primary"></v-text-field>
 
                 <v-text-field v-model="password" label="密碼" variant="outlined" prepend-inner-icon="mdi-lock-outline"
