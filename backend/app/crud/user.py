@@ -33,6 +33,7 @@ def authenticate_user(db: Session, username: str, password: str) -> User | None:
     如果驗證成功，返回使用者物件；否則返回 None。
     """
     user = get_user_by_username(db, username=username)
+    user = get_user_by_email(db, email=username) if not user else user
     if not user:
         return None
     if not user.is_active: # 可以選擇是否檢查使用者是否啟用

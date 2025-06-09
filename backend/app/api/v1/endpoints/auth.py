@@ -26,6 +26,14 @@ async def register_new_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
+        
+    # Check if username is in email format
+    if "@" in user_in.username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username cannot be in email format",
+        )
+        
     db_user_by_username = crud_user.get_user_by_username(db, username=user_in.username)
     if db_user_by_username:
         raise HTTPException(
@@ -48,6 +56,7 @@ async def login_for_access_token(
     user = crud_user.authenticate_user(
         db, username=form_data.username, password=form_data.password
     )
+    
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
